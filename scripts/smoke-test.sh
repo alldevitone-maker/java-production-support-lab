@@ -4,7 +4,11 @@ mkdir -p out
 javac -d out src/main/java/lab/payments/*.java
 java -cp out lab.payments.PaymentSupportLab > /tmp/java-production-support-lab.log 2>&1 &
 server_pid=$!
-trap 'kill "$server_pid" 2>/dev/null || true' EXIT INT TERM
+cleanup() {
+  kill "$server_pid" 2>/dev/null || true
+  wait "$server_pid" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 attempt=0
 until curl -fsS http://127.0.0.1:8080/health >/dev/null; do
