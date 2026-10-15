@@ -1,0 +1,9 @@
+out/
+*.class
+*.log
+.env
+.env.*
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
