@@ -1,0 +1,35 @@
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  tomcat:
+    max-http-form-post-size: 16KB
+    threads:
+      max: 32
+spring:
+  application:
+    name: payops-lab
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:payops;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 5
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+payops:
+  session-limit: 100
+  global-limit: 10000
+  retention-hours: 24

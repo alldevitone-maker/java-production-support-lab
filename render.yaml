@@ -1,0 +1,15 @@
+# No paid resources are requested by this Blueprint.
+# The free service uses ephemeral H2 SQL by default. PostgreSQL is optional.
+services:
+  - type: web
+    name: payops-java-support-lab
+    runtime: docker
+    plan: free
+    repo: https://github.com/alldevitone-maker/java-production-support-lab
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=65.0

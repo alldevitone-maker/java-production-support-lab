@@ -1,25 +1,57 @@
-name: Java smoke checks
-
-on:
-  push:
-  pull_request:
-
+name: PayOps checks
+on: [push, pull_request]
 permissions:
   contents: read
-
 jobs:
-  build-and-smoke:
+  h2-and-react:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Compile
-        run: mkdir -p out && javac -d out src/main/java/lab/payments/*.java
-      - name: Exercise API and console
-        run: sh scripts/smoke-test.sh
-      - name: Verify all incident scenarios
-        run: python3 scripts/scenario-test.py
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: python3 scripts/generate-seed.py --check
+      - run: npm ci --prefix frontend
+      - run: npm run test --prefix frontend
+      - run: npm run build --prefix frontend
+      - run: mkdir -p backend/src/main/resources/static && cp -R frontend/dist/. backend/src/main/resources/static/
+      - run: mvn -B -f backend/pom.xml verify
+      - name: Upload runnable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: payops-lab-0.2.0
+          path: backend/target/payops-lab-0.2.0.jar
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: payops_test
+          POSTGRES_USER: payops
+          POSTGRES_PASSWORD: local-ci-only
+        ports: ['5432:5432']
+        options: --health-cmd 'pg_isready -U payops -d payops_test' --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/payops_test
+      DATABASE_USERNAME: payops
+      DATABASE_PASSWORD: local-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - run: mvn -B -f backend/pom.xml test

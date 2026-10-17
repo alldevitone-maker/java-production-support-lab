@@ -1,22 +1,31 @@
-# Roadmap
+# Roadmap · v0.2.0
 
-## v0.1.0
+## Implementado no código
 
-- [x] Java 17 API bound to loopback
-- [x] Pix and card simulations with ten fault scenarios
-- [x] Operations console with filtering and event details
-- [x] PostgreSQL investigation examples
-- [x] Portuguese and English README navigation
-- [x] CI compilation, smoke checks and scenario checks
+- [x] React responsivo com PT/EN e temas claro/escuro
+- [x] Java 17 + Spring Boot + validação JSON
+- [x] Cinco instituições e conectores populados por SQL
+- [x] Flyway, H2 e configuração PostgreSQL
+- [x] Identificadores fictícios txid e endToEndId
+- [x] Eventos, tentativas, busca e filtros
+- [x] Idempotência com unicidade no SQL e teste concorrente
+- [x] Sessões anônimas com históricos separados
+- [x] Doze fluxos, incluindo o caso normal e indisponibilidade
+- [x] Docker e Blueprint de hospedagem
+- [x] Modo de navegador explicitamente identificado
 
-## Next
+## Publicação e validação
 
-- [ ] Complete JSON parsing and request schema validation
-- [ ] Atomic idempotency and concurrent-request tests
-- [ ] Event identifiers and version-aware projections
-- [ ] PostgreSQL persistence and migrations
-- [ ] Metrics and distributed tracing
-- [ ] Container packaging with explicit local-only defaults
-- [ ] English UI and accessibility audit on desktop/mobile
+- [ ] Serviço Spring Boot público ativo no provedor do proprietário
+- [ ] PostgreSQL persistente publicado (opcional; H2 já é executável)
+- [ ] Auditoria visual manual em desktop e dispositivos móveis
 
-Checked items describe included artifacts; CI execution is verified separately in GitHub Actions.
+Os testes e builds são verificados a cada alteração no GitHub Actions. A existência do Blueprint não comprova que o serviço Java já foi publicado.
+
+## Próximos passos
+
+- [ ] Métricas e tracing com OpenTelemetry
+- [ ] Processamento assíncrono de confirmação e reconciliação
+- [ ] Exercícios de circuit breaker e backoff
+- [ ] Catálogo configurável por migrações incrementais
+- [ ] Hardening de acesso para qualquer uso além de dados fictícios

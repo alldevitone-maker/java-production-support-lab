@@ -1,16 +1,18 @@
-# Java Production Support Lab
+# PayOps Lab
 
 [Português](README.md) | [English](README.en.md)
 
-![Java smoke checks](https://github.com/alldevitone-maker/java-production-support-lab/actions/workflows/java.yml/badge.svg)
+![PayOps checks](https://github.com/alldevitone-maker/java-production-support-lab/actions/workflows/java.yml/badge.svg)
 
-A hands-on L2/L3 production support lab for a fictional payments API. Practice incident triage, correlation IDs, idempotency, event timelines and SQL investigations with controlled fault injection.
+A hands-on L2/L3 support laboratory built with **React, Java 17, Spring Boot and SQL**. Simulate fictional Pix transfers between five institutions, inject incidents and inspect identifiers, projected status, connector attempts and event timelines.
 
-Java 17, standard library only. In-memory data. No real payments or provider integrations. The operations console is currently in Portuguese.
+[Online console](https://payops-java-support-lab.giovane-pereir914826.chatgpt.site) · [Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) · [API](docs/API.md)
 
-## Quick start
+The Sites publication is an explicitly labeled **browser demo**. It does not run Java or connect to SQL. The full Spring Boot application can be deployed with the repository's Dockerfile and Render Blueprint. The UI never silently falls back from Java to the browser simulator.
 
-Requirements: JDK 17 or newer. The smoke checks also require a POSIX shell and curl.
+## Run the full stack
+
+Requirements: JDK 17+, Maven 3.6.3+, Node 22.12+ and npm.
 
 ```bash
 git clone https://github.com/alldevitone-maker/java-production-support-lab.git
@@ -18,77 +20,42 @@ cd java-production-support-lab
 sh run.sh
 ```
 
-Open http://localhost:8080 to use the console. Run commands from the repository root because the server reads `ui/index.html` from that directory. On Windows, use the manual compilation commands below or Git Bash for shell scripts.
+Open http://localhost:8080. React is built into the executable JAR; Spring serves the frontend and API from the same origin. H2 in-memory SQL is the default. Flyway automatically creates the schema and seeds five institutions and five connectors. Payments reset on restart.
+
+For persistent PostgreSQL storage:
 
 ```bash
-mkdir -p out
-javac -d out src/main/java/lab/payments/*.java
-java -cp out lab.payments.PaymentSupportLab
+cp .env.example .env
+# Choose POSTGRES_PASSWORD in .env first.
+docker compose up --build
 ```
 
-## Exercise a payment
+Alternatively set `DATABASE_URL=jdbc:postgresql://HOST:5432/DB`, `DATABASE_USERNAME` and `DATABASE_PASSWORD`. Never commit credentials.
+
+## Exercises
+
+The catalog includes a normal flow plus duplicate settlement, timeout after acceptance, stale status, injected amount discrepancy, missing log correlation, wrong HTTP status, empty downstream response, excessive retries, duplicate webhook, out-of-order event and connector unavailability.
+
+Each payment carries synthetic `txid`, `endToEndId`, `paymentId` and `correlationId`. The `E00000000` participant portion is fictional and does not claim Pix/SPI interoperability. Connector latency is configured exercise data, not a live bank measurement. All five institution names are fictional; no bank calls or financial operations occur.
+
+The backend reads the institution catalog from SQL. Connector strategies are selected by database profile, not institution names. Flyway seed data is generated from `catalog/institutions.json`, which also powers the browser demo fixture.
+
+## API and sessions
+
+An anonymous browser session is identified by a random UUID stored in `sessionStorage`. There is no login. API requests use `X-Lab-Session`; POST requests also use `Idempotency-Key`. Queries and resets are scoped to this session. The unique `(session_id, idempotency_key)` constraint prevents concurrent duplicate creation; reusing a key with another payload returns 409.
+
+At most 100 operations are stored per session, with a simple global capacity of 10,000 records. Scheduled cleanup removes entries older than 24 hours. This is an educational demo with synthetic data, not production banking software.
+
+## Checks
 
 ```bash
-curl -i -X POST http://localhost:8080/payments \
-  -H 'Content-Type: application/json' \
-  -H 'X-Correlation-Id: demo-001' \
-  -H 'Idempotency-Key: order-1001' \
-  -d '{"customerId":"cust-42","amount":19.99,"currency":"BRL","paymentMethod":"PIX"}'
+python3 scripts/generate-seed.py --check
+npm ci --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
+mvn -B -f backend/pom.xml verify
 ```
 
-Use `PIX`, `CREDIT_CARD` or `DEBIT_CARD` as the payment method. Repeat a sequential request with the same idempotency key to retrieve the original payment. To inject a fault, add `X-Lab-Bug` with one of the identifiers below.
+GitHub Actions runs migrations and backend integration tests against both H2 and PostgreSQL, tests React and the browser simulation, and builds a runnable JAR. See [roadmap](docs/ROADMAP.md) for deployment status and remaining work.
 
-| Scenario | Investigation focus |
-|---|---|
-| `duplicate-charge` | Repeated simulated settlement or card capture |
-| `timeout-after-accept` | A 504 response despite an accepted payment |
-| `stale-status` | Events and projected status disagree |
-| `rounding-error` | Binary floating-point conversion changes rounding |
-| `missing-correlation` | Correlation ID missing from logs |
-| `wrong-http-status` | Invalid request incorrectly returns HTTP 200 |
-| `null-response` | Empty downstream result mapped to HTTP 502 |
-| `retry-storm` | Excessive downstream attempts |
-| `duplicate-webhook` | Duplicate webhook events |
-| `out-of-order-events` | An older event overwrites the projected status |
-
-## API
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/` | Operations console |
-| GET | `/health` | Liveness |
-| GET | `/payments` | List session payments |
-| POST | `/payments` | Create a simulated payment |
-| GET | `/payments/{id}` | Payment details and events |
-| GET | `/admin/scenarios` | Available fault identifiers |
-| POST | `/admin/reset` | Clear in-memory exercises |
-
-## Support runbook
-
-1. Capture timestamp, endpoint, HTTP status, payment ID and correlation ID.
-2. Query existing payments before retrying: a timeout does not prove rejection.
-3. Compare event timestamps with the projected state and identify duplicate events.
-4. Establish impact, scope and affected time window.
-5. Escalate with sanitized evidence, reproduction steps and mitigation attempts.
-6. Record root cause, fix, prevention and follow-up work.
-
-## Validation
-
-```bash
-sh scripts/smoke-test.sh
-python3 scripts/scenario-test.py
-```
-
-The scenario suite starts its own Java server. Do not run another instance on port 8080 during tests. GitHub Actions compiles Java 17 and runs both suites on pushes and pull requests.
-
-## Architecture and limits
-
-See [architecture](docs/ARCHITECTURE.md), [contribution guide](CONTRIBUTING.md) and [roadmap](docs/ROADMAP.md).
-
-The server binds to `127.0.0.1:8080`. Data resets when the process exits. SQL files are PostgreSQL study examples and are not connected to the API. The JSON parser is deliberately minimal and does not implement the complete JSON specification. Idempotency is sequential and is not an atomic guarantee under concurrent requests. No authentication, real provider sandbox, live charges, production persistence or production readiness is claimed.
-
-External documentation linked in the console provides conceptual background only. Provider names are illustrative labels, not active integrations or endorsements.
-
-## License
-
-[MIT](LICENSE). Copyright 2026 Giovane.
+The original framework-free Java implementation is preserved under [legacy](legacy/). [MIT license](LICENSE). Copyright 2026 Giovane.

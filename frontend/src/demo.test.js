@@ -1,0 +1,12 @@
+import {beforeEach,describe,expect,it} from 'vitest';
+import {request} from './demo.js';
+const payload={sourceId:'aurora',destinationId:'vertice',amount:49.9,currency:'BRL',scenario:'normal'};
+const create=(scenario='normal',key=crypto.randomUUID(),extra={})=>request('/payments',{method:'POST',key,body:{...payload,scenario,...extra}});
+beforeEach(()=>request('/payments',{method:'DELETE'}));
+describe('explicit browser demo contract',()=>{
+ it('has five institutions and twelve scenarios',async()=>{const{data}=await request('/catalog');expect(data.institutions).toHaveLength(5);expect(data.scenarios).toHaveLength(12);expect(data.runtime).toBe('BROWSER_DEMO')});
+ it.each([['normal',201,'SETTLED'],['duplicate-charge',201,'SETTLED'],['timeout-after-accept',504,'SETTLED'],['stale-status',201,'PENDING'],['rounding-error',201,'REVIEW'],['missing-correlation',201,'SETTLED'],['wrong-http-status',200,'REJECTED'],['null-response',502,'UNKNOWN'],['retry-storm',201,'SETTLED'],['duplicate-webhook',201,'SETTLED'],['out-of-order-events',201,'PENDING'],['connector-unavailable',503,'FAILED']])('%s records the expected contract',async(scenario,http,state)=>{const{status,data}=await create(scenario);expect(status).toBe(http);expect(data.payment.status).toBe(state);expect(data.payment.txid).toMatch(/^SIMTX[a-f0-9]{27}$/);expect(data.payment.endToEndId).toMatch(/^E00000000[0-9]{12}[a-f0-9]{11}$/);expect((await request('/payments')).data).toHaveLength(1)});
+ it('replays the same key, rejects conflicting payload and resets',async()=>{const a=await create('normal','same'),b=await create('normal','same');expect(b.data.replayed).toBe(true);expect(b.data.payment.paymentId).toBe(a.data.payment.paymentId);await expect(create('normal','same',{amount:11})).rejects.toThrow('idempotência');await request('/payments',{method:'DELETE'});expect((await request('/payments')).data).toHaveLength(0)});
+ it('exposes duplicate webhook event IDs and four retries',async()=>{const a=(await create('duplicate-webhook')).data.payment;const ids=a.events.filter(e=>e.type==='WEBHOOK_DELIVERED').map(e=>e.eventId);expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);expect((await create('retry-storm')).data.payment.attempts).toHaveLength(4)});
+ it('rejects same institution and fractional cents',async()=>{await expect(create('normal','x',{destinationId:'aurora'})).rejects.toThrow();await expect(create('normal','y',{amount:1.005})).rejects.toThrow()});
+});

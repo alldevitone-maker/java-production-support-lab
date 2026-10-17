@@ -1,23 +1,39 @@
-# Arquitetura / Architecture
+# Arquitetura
 
 [Português](../README.md) | [English](../README.en.md)
 
-## Componentes
+## Aplicação completa
 
-| Caminho | Responsabilidade |
+React chama `/api` na mesma origem. Spring Boot serve tanto os assets compilados quanto a API. Não há cadastro. O servidor usa o identificador aleatório de sessão para consultar, criar e limpar somente as simulações do visitante.
+
+| Componente | Responsabilidade |
 |---|---|
-| `src/main/java/lab/payments/PaymentSupportLab.java` | Servidor HTTP, domínio simulado, roteamento e injeção de falhas |
-| `ui/index.html` | Console responsivo, filtros, criação de simulações e timeline |
-| `sql/` | Modelo e consultas PostgreSQL para estudo |
-| `scripts/` | Verificação de fluxos e cenários |
-| `.github/workflows/java.yml` | Compilação e validação no GitHub Actions |
+| `frontend/` | Console React, idiomas, temas, filtros e detalhe dos eventos |
+| `ApiController` | Contrato HTTP e validação dos cabeçalhos |
+| `PaymentService` | Identificadores, idempotência, regras e cenários |
+| `ConnectorRegistry` | Estratégias de simulação selecionadas pelo perfil SQL |
+| `PaymentRepository` | Consultas parametrizadas, eventos e tentativas |
+| Flyway | Schema e catálogo inicial reproduzíveis |
+| PostgreSQL / H2 | Persistência real / SQL efêmero para demonstração |
 
-## Fluxo
+A transação SQL grava pagamento, eventos e tentativas de forma atômica. Uma restrição de unicidade resolve reenvios concorrentes; a impressão SHA-256 normalizada do pedido rejeita uso da chave com outro conteúdo.
 
-O console envia JSON para a API na mesma origem. A API cria pagamentos e eventos em memória e registra logs JSON no terminal. Cada cenário é selecionado pelo cabeçalho `X-Lab-Bug`. Não há chamada externa de pagamento.
+## Modelo SQL
 
-A thread pool possui quatro workers. Os mapas são concorrentes, mas a sequência consultar/criar da idempotência não é atômica. Não use essa implementação como garantia financeira.
+| Tabela | Relação |
+|---|---|
+| institutions | Catálogo de cinco instituições fictícias |
+| connectors | Um conector por instituição, com perfil e latência base |
+| payments | Origem, destino, valores, identificadores e sessão |
+| payment_events | Muitos eventos por pagamento; duplicata didática pode compartilhar eventId |
+| connector_attempts | Muitas tentativas por pagamento e conector |
 
-## Design boundaries
+Os eventos possuem horário e sequência de recebimento separados. No cenário fora de ordem, uma mensagem mais antiga chega depois. As latências são valores sintéticos e não são usadas para dormir ou bloquear threads.
 
-The service is a compact teaching implementation, not a production reference architecture. Fault injection belongs to the local lab. The SQL model is independent from runtime storage. Future persistence, JSON validation and atomic idempotency must preserve the educational scenarios as explicitly selected fixtures.
+## Publicação no Sites
+
+O Sites hospeda somente a build com `VITE_LAB_MODE=demo`. Essa build usa `demo.js`, dados em memória da aba e o catálogo compartilhado. Mostra BROWSER DEMO e uma nota explícita. Não usa nem afirma usar SQL ou Spring Boot. A build padrão usa o backend; erro de rede continua sendo erro de rede.
+
+## Limites técnicos
+
+Não há integração real, compliance bancário, autenticação, consulta DICT/SPI, cobrança ou execução remota de SQL. A sessão é isolamento didático por capacidade aleatória, não uma identidade verificada. O controle global de capacidade não garante quotas entre múltiplas réplicas. Para dados sensíveis ou uso comercial, redesenhe identidade, autorização e controles operacionais.

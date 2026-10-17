@@ -1,0 +1,47 @@
+[
+  {
+    "id": "aurora",
+    "name": "Banco Aurora",
+    "kind": "Banco digital fictício",
+    "color": "#74e4b4",
+    "initials": "AU",
+    "profile": "FAST",
+    "latencyMs": 120
+  },
+  {
+    "id": "vertice",
+    "name": "Vértice Pay",
+    "kind": "Fintech fictícia",
+    "color": "#9f8cff",
+    "initials": "VP",
+    "profile": "STANDARD",
+    "latencyMs": 260
+  },
+  {
+    "id": "horizonte",
+    "name": "Banco Horizonte",
+    "kind": "Banco fictício",
+    "color": "#72b2ff",
+    "initials": "HZ",
+    "profile": "SLOW",
+    "latencyMs": 1200
+  },
+  {
+    "id": "nimbus",
+    "name": "Nimbus Money",
+    "kind": "Fintech fictícia",
+    "color": "#f5b75b",
+    "initials": "NM",
+    "profile": "STANDARD",
+    "latencyMs": 380
+  },
+  {
+    "id": "orbita",
+    "name": "Órbita Bank",
+    "kind": "Banco digital fictício",
+    "color": "#ed8cb8",
+    "initials": "OB",
+    "profile": "FAST",
+    "latencyMs": 180
+  }
+]

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 set -eu
-mkdir -p out
-javac -d out src/main/java/lab/payments/*.java
-exec java -cp out lab.payments.PaymentSupportLab
+cd "$(dirname "$0")"
+sh scripts/build.sh
+exec java -jar backend/target/payops-lab-0.2.0.jar

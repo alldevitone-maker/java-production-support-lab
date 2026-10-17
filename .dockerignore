@@ -1,0 +1,7 @@
+.git
+**/node_modules
+**/dist
+**/target
+backend/src/main/resources/static
+legacy
+.env*
